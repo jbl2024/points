@@ -43,7 +43,7 @@
                         <label for="participants" class="block text-lg mb-2">
                             <i class="fas fa-users mr-2"></i>Nombre de participants
                         </label>
-                        <input type="number" id="participants" min="1" value="16" 
+                        <input type="number" id="participants" min="1" step="1" value="16"
                                class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white">
                     </div>
                     
@@ -53,10 +53,8 @@
                         </label>
                         <select id="competition-type" 
                                 class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white">
-                            <option value="0.5">Compétition ligue</option>
-                            <option value="1">Compétition zonale</option>
-                            <option value="1.5">Compétition interzone</option>
-                            <option value="2">Compétition FDJ</option>
+                            <option value="m13">M13 — Zone (coefficient 1)</option>
+                            <option value="regional">Épreuve régionale</option>
                         </select>
                     </div>
                 </div>
@@ -106,37 +104,24 @@
             calculateBtn.addEventListener('click', calculatePoints);
             
             function calculatePoints() {
-                const participants = parseInt(participantsInput.value);
-                const competitionCoefficient = parseFloat(competitionTypeSelect.value);
+                const participants = Number(participantsInput.value);
+                const competitionType = competitionTypeSelect.value;
                 
-                if (isNaN(participants) || participants < 1) {
-                    alert('Veuillez entrer un nombre valide de participants');
+                if (!Number.isSafeInteger(participants) || participants < 1) {
+                    alert('Veuillez entrer un nombre entier positif de participants');
                     return;
                 }
                 
-                // Calcul du coefficient en fonction du nombre de participants
-                let participantCoefficient;
-                if (participants === 1) {
-                    participantCoefficient = 0;
-                } else if (participants >= 2 && participants <= 8) {
-                    participantCoefficient = 0.3;
-                } else if (participants >= 9 && participants <= 16) {
-                    participantCoefficient = 0.5;
-                } else if (participants >= 17 && participants <= 32) {
-                    participantCoefficient = 0.7;
-                } else if (participants >= 33 && participants <= 64) {
-                    participantCoefficient = 1;
-                } else {
-                    participantCoefficient = 1.5;
-                }
-                
-                coefficientInfo.textContent = `Coefficient participants: ${participantCoefficient} | Coefficient compétition: ${competitionCoefficient} | Total: ${(participantCoefficient * competitionCoefficient).toFixed(2)}`;
-                
+                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants);
+                coefficientInfo.textContent = competitionType === 'm13'
+                    ? `M13 : (1,01 − log(rang) / log(${participants})) × ${participantCoefficient} × 1 (zone)`
+                    : `Régionale : 100 × (1 − log(rang) / log(${regionalBase})) × 0,26 × (100 − 3 × log(rang) / log(2))`;
+
                 // Calcul des points pour chaque place
                 resultsGrid.innerHTML = '';
                 
                 for (let place = 1; place <= participants; place++) {
-                    const points = calculatePointsForPlace(place, participants, participantCoefficient, competitionCoefficient);
+                    const points = calculatePointsForPlace(place, participants, competitionType);
                     
                     const card = document.createElement('div');
                     card.className = 'result-card bg-white/5 rounded-lg p-4 border border-white/10 hover:border-blue-400';
@@ -156,7 +141,7 @@
                                 ${medalIcon}${place}${getOrdinalSuffix(place)}
                             </div>
                             <div class="text-xl font-bold text-blue-300">
-                                ${points.toFixed(2)}
+                                ${points === null ? 'Non défini' : points.toFixed(2)}
                             </div>
                         </div>
                         <div class="mt-2 text-sm opacity-80">
@@ -173,15 +158,28 @@
                 resultsContainer.scrollIntoView({ behavior: 'smooth' });
             }
             
-            function calculatePointsForPlace(place, participants, participantCoefficient, competitionCoefficient) {
-                if (place < 1 || participants < 1) return 0;
-                
-                const logPlace = Math.log(place);
-                const logParticipants = Math.log(participants);
-                
-                return 100 * (1.01 - (logPlace / logParticipants)) * participantCoefficient * competitionCoefficient;
+            function getParticipantCoefficients(participants) {
+                if (participants < 8) return { participantCoefficient: 0.3, regionalBase: 30.30 };
+                if (participants < 17) return { participantCoefficient: 0.5, regionalBase: 50.50 };
+                if (participants < 32) return { participantCoefficient: 0.7, regionalBase: 70.70 };
+                if (participants < 64) return { participantCoefficient: 1, regionalBase: 101 };
+                return { participantCoefficient: 1.5, regionalBase: 150 };
             }
-            
+
+            function calculatePointsForPlace(place, participants, competitionType) {
+                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants);
+                const logPlace = Math.log(place);
+
+                if (competitionType === 'regional') {
+                    return 100 * (1 - logPlace / Math.log(regionalBase))
+                        * 0.26 * (100 - 3 * logPlace / Math.log(2));
+                }
+
+                // Pour un participant, log(nb participants) = 0 : formule non définie.
+                if (participants === 1) return null;
+                return (1.01 - logPlace / Math.log(participants)) * participantCoefficient * 1;
+            }
+
             function getOrdinalSuffix(number) {
                 const suffixes = ['er', 'ème', 'ème', 'ème'];
                 return number <= 3 ? suffixes[number - 1] : 'ème';
