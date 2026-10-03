@@ -112,9 +112,9 @@
                     return;
                 }
                 
-                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants);
+                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants, competitionType);
                 coefficientInfo.textContent = competitionType === 'm13'
-                    ? `M13 : (1,01 − log(rang) / log(${participants})) × ${participantCoefficient} × 1 (zone)`
+                    ? `M13 : 100 × (1,01 − log(rang) / log(${participants})) × ${participantCoefficient} × 1 (zone)`
                     : `Régionale : 100 × (1 − log(rang) / log(${regionalBase})) × 0,26 × (100 − 3 × log(rang) / log(2))`;
 
                 // Calcul des points pour chaque place
@@ -141,7 +141,7 @@
                                 ${medalIcon}${place}${getOrdinalSuffix(place)}
                             </div>
                             <div class="text-xl font-bold text-blue-300">
-                                ${points === null ? 'Non défini' : points.toFixed(2)}
+                                ${points.toFixed(2)}
                             </div>
                         </div>
                         <div class="mt-2 text-sm opacity-80">
@@ -158,7 +158,18 @@
                 resultsContainer.scrollIntoView({ behavior: 'smooth' });
             }
             
-            function getParticipantCoefficients(participants) {
+            function getParticipantCoefficients(participants, competitionType) {
+                // M13 : seuils inclusifs de la page de référence, zone de coefficient 1.
+                if (competitionType === 'm13') {
+                    if (participants === 1) return { participantCoefficient: 0 };
+                    if (participants <= 8) return { participantCoefficient: 0.3 };
+                    if (participants <= 16) return { participantCoefficient: 0.5 };
+                    if (participants <= 32) return { participantCoefficient: 0.7 };
+                    if (participants <= 64) return { participantCoefficient: 1 };
+                    return { participantCoefficient: 1.5 };
+                }
+
+                // Régionale : barème fourni pour la base du logarithme.
                 if (participants < 8) return { participantCoefficient: 0.3, regionalBase: 30.30 };
                 if (participants < 17) return { participantCoefficient: 0.5, regionalBase: 50.50 };
                 if (participants < 32) return { participantCoefficient: 0.7, regionalBase: 70.70 };
@@ -167,7 +178,7 @@
             }
 
             function calculatePointsForPlace(place, participants, competitionType) {
-                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants);
+                const { participantCoefficient, regionalBase } = getParticipantCoefficients(participants, competitionType);
                 const logPlace = Math.log(place);
 
                 if (competitionType === 'regional') {
@@ -175,9 +186,9 @@
                         * 0.26 * (100 - 3 * logPlace / Math.log(2));
                 }
 
-                // Pour un participant, log(nb participants) = 0 : formule non définie.
-                if (participants === 1) return null;
-                return (1.01 - logPlace / Math.log(participants)) * participantCoefficient * 1;
+                // Le coefficient est nul pour un participant ; éviter la division par log(1).
+                if (participants === 1) return 0;
+                return 100 * (1.01 - logPlace / Math.log(participants)) * participantCoefficient * 1;
             }
 
             function getOrdinalSuffix(number) {
