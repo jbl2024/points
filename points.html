@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur de Points d'Escrime</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+        }
+        .result-card {
+            transition: all 0.3s ease;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg text-white">
+    <div class="container mx-auto px-4 py-12">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">Calculateur de Points d'Escrime</h1>
+                <p class="text-xl opacity-90">Calculez les points gagnés selon votre classement et le type de compétition</p>
+                <div class="mt-6">
+                    <i class="fas fa-trophy text-3xl text-yellow-300 animate-bounce"></i>
+                </div>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-6 shadow-xl mb-12">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                    <i class="fas fa-calculator mr-3"></i> Paramètres de la compétition
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="participants" class="block text-lg mb-2">
+                            <i class="fas fa-users mr-2"></i>Nombre de participants
+                        </label>
+                        <input type="number" id="participants" min="1" value="16" 
+                               class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white">
+                    </div>
+                    
+                    <div>
+                        <label for="competition-type" class="block text-lg mb-2">
+                            <i class="fas fa-flag mr-2"></i>Type de compétition
+                        </label>
+                        <select id="competition-type" 
+                                class="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 focus:outline-none focus:ring-2 focus:ring-blue-400 text-white">
+                            <option value="0.5">Compétition ligue</option>
+                            <option value="1">Compétition zonale</option>
+                            <option value="1.5">Compétition interzone</option>
+                            <option value="2">Compétition FDJ</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <button id="calculate-btn" 
+                            class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-all flex items-center justify-center">
+                        <i class="fas fa-play-circle mr-2"></i> Calculer les points
+                    </button>
+                </div>
+                <div class="mt-8">
+                    <button onclick="window.location.href='stpaul.html'" 
+                            class="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-lg transition-all flex items-center justify-center">
+                        <i class="fas fa-map-marker-alt mr-2"></i> Saint Paul
+                    </button>
+                </div>
+            </div>
+
+            <div id="results-container" class="hidden">
+                <h2 class="text-2xl font-semibold mb-6 flex items-center">
+                    <i class="fas fa-list-ol mr-3"></i> Résultats par classement
+                </h2>
+                
+                <div class="mb-6 bg-white/10 rounded-lg p-4">
+                    <div class="grid grid-cols-3 font-semibold text-lg border-b border-white/20 pb-2 mb-2">
+                        <div>Classement</div>
+                        <div>Points</div>
+                        <div>Coefficient</div>
+                    </div>
+                    <div id="coefficient-info" class="text-sm opacity-80 italic"></div>
+                </div>
+                
+                <div id="results-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[500px] overflow-y-auto scrollbar-hide"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const calculateBtn = document.getElementById('calculate-btn');
+            const participantsInput = document.getElementById('participants');
+            const competitionTypeSelect = document.getElementById('competition-type');
+            const resultsContainer = document.getElementById('results-container');
+            const resultsGrid = document.getElementById('results-grid');
+            const coefficientInfo = document.getElementById('coefficient-info');
+            
+            calculateBtn.addEventListener('click', calculatePoints);
+            
+            function calculatePoints() {
+                const participants = parseInt(participantsInput.value);
+                const competitionCoefficient = parseFloat(competitionTypeSelect.value);
+                
+                if (isNaN(participants) || participants < 1) {
+                    alert('Veuillez entrer un nombre valide de participants');
+                    return;
+                }
+                
+                // Calcul du coefficient en fonction du nombre de participants
+                let participantCoefficient;
+                if (participants === 1) {
+                    participantCoefficient = 0;
+                } else if (participants >= 2 && participants <= 8) {
+                    participantCoefficient = 0.3;
+                } else if (participants >= 9 && participants <= 16) {
+                    participantCoefficient = 0.5;
+                } else if (participants >= 17 && participants <= 32) {
+                    participantCoefficient = 0.7;
+                } else if (participants >= 33 && participants <= 64) {
+                    participantCoefficient = 1;
+                } else {
+                    participantCoefficient = 1.5;
+                }
+                
+                coefficientInfo.textContent = `Coefficient participants: ${participantCoefficient} | Coefficient compétition: ${competitionCoefficient} | Total: ${(participantCoefficient * competitionCoefficient).toFixed(2)}`;
+                
+                // Calcul des points pour chaque place
+                resultsGrid.innerHTML = '';
+                
+                for (let place = 1; place <= participants; place++) {
+                    const points = calculatePointsForPlace(place, participants, participantCoefficient, competitionCoefficient);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'result-card bg-white/5 rounded-lg p-4 border border-white/10 hover:border-blue-400';
+                    
+                    let medalIcon = '';
+                    if (place === 1) {
+                        medalIcon = '<i class="fas fa-medal text-yellow-400 mr-2"></i>';
+                    } else if (place === 2) {
+                        medalIcon = '<i class="fas fa-medal text-gray-300 mr-2"></i>';
+                    } else if (place === 3) {
+                        medalIcon = '<i class="fas fa-medal text-amber-600 mr-2"></i>';
+                    }
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div class="text-lg font-medium">
+                                ${medalIcon}${place}${getOrdinalSuffix(place)}
+                            </div>
+                            <div class="text-xl font-bold text-blue-300">
+                                ${points.toFixed(2)}
+                            </div>
+                        </div>
+                        <div class="mt-2 text-sm opacity-80">
+                            ${getPlaceComment(place, participants)}
+                        </div>
+                    `;
+                    
+                    resultsGrid.appendChild(card);
+                }
+                
+                resultsContainer.classList.remove('hidden');
+                
+                // Animation pour faire défiler vers les résultats
+                resultsContainer.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function calculatePointsForPlace(place, participants, participantCoefficient, competitionCoefficient) {
+                if (place < 1 || participants < 1) return 0;
+                
+                const logPlace = Math.log(place);
+                const logParticipants = Math.log(participants);
+                
+                return 100 * (1.01 - (logPlace / logParticipants)) * participantCoefficient * competitionCoefficient;
+            }
+            
+            function getOrdinalSuffix(number) {
+                const suffixes = ['er', 'ème', 'ème', 'ème'];
+                return number <= 3 ? suffixes[number - 1] : 'ème';
+            }
+            
+            function getPlaceComment(place, participants) {
+                if (place === 1) return 'Champion de la compétition!';
+                if (place === participants) return 'Dernière place';
+                if (place <= participants * 0.1) return 'Top 10%';
+                if (place <= participants * 0.25) return 'Top 25%';
+                if (place <= participants * 0.5) return 'Top 50%';
+                return 'Performance standard';
+            }
+        });
+    </script>
+</body>
+</html>
